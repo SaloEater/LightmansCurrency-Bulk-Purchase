@@ -21,7 +21,7 @@ public class BulkTradeExecutor {
         }
 
         boolean shouldExecute() {
-            return remaining > 0 && (System.currentTimeMillis() - lastExecutionTime) >= 20;
+            return remaining > 0 && (System.currentTimeMillis() - lastExecutionTime) > 10;
         }
 
         void executeOne() {

@@ -18,6 +18,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
+import static com.saloeater.lc_bulk_purchase.client.BulkTradeExecutor.*;
+
 @Mixin(value = TraderInteractionTab.class, remap = false)
 public class TraderInteractionTabMixin {
 
@@ -33,6 +35,11 @@ public class TraderInteractionTabMixin {
 
         // Cancel original execution
         ci.cancel();
+
+        // Don't show input if a bulk purchase is already in progress
+        if (isExecuting()) {
+            return;
+        }
 
         // Null checks
         if (trader == null || trade == null) {
