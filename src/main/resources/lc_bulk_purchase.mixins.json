@@ -3,6 +3,7 @@
   "minVersion": "0.7",
   "package": "com.saloeater.lc_bulk_purchase.mixin",
   "compatibilityLevel": "JAVA_17",
+  "refmap": "lc_bulk_purchase.refmap.json",
   "client": [
     "TraderInteractionTabAccessor",
     "TraderInteractionTabMixin"

@@ -1,14 +1,17 @@
 package com.saloeater.lc_bulk_purchase.mixin;
 
-import com.saloeater.lc_bulk_purchase.client.gui.BulkPurchaseInputScreen;
+import com.saloeater.lc_bulk_purchase.client.gui.BulkPurchaseInputWidget;
 import io.github.lightman314.lightmanscurrency.api.traders.ITraderSource;
 import io.github.lightman314.lightmanscurrency.api.traders.TraderData;
 import io.github.lightman314.lightmanscurrency.api.traders.menu.customer.ITraderMenu;
+import io.github.lightman314.lightmanscurrency.api.traders.menu.customer.ITraderScreen;
 import io.github.lightman314.lightmanscurrency.api.traders.trade.TradeData;
+import io.github.lightman314.lightmanscurrency.client.gui.screen.inventory.TraderScreen;
 import io.github.lightman314.lightmanscurrency.client.gui.screen.inventory.trader.common.TraderInteractionTab;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -17,6 +20,9 @@ import java.util.List;
 
 @Mixin(value = TraderInteractionTab.class, remap = false)
 public class TraderInteractionTabMixin {
+
+    @Unique
+    private BulkPurchaseInputWidget lc_bulk_purchase$currentInputWidget = null;
 
     @Inject(method = "OnButtonPress", at = @At("HEAD"), cancellable = true, remap = false)
     private void onButtonPress(TraderData trader, TradeData trade, CallbackInfo ci) {
@@ -69,14 +75,38 @@ public class TraderInteractionTabMixin {
         double mouseX = mc.mouseHandler.xpos() * mc.getWindow().getGuiScaledWidth() / mc.getWindow().getScreenWidth();
         double mouseY = mc.mouseHandler.ypos() * mc.getWindow().getGuiScaledHeight() / mc.getWindow().getScreenHeight();
 
-        // Show input screen
-        BulkPurchaseInputScreen inputScreen = new BulkPurchaseInputScreen(
+        // Get the screen
+        ITraderScreen screen = ((TraderInteractionTabAccessor) this).getScreen();
+        if (!(screen instanceof TraderScreen)) {
+            return;
+        }
+
+        TraderScreen traderScreen = (TraderScreen) screen;
+
+        // Remove old widget if exists
+        if (lc_bulk_purchase$currentInputWidget != null) {
+            traderScreen.removeChild(lc_bulk_purchase$currentInputWidget);
+        }
+
+        // Create and add new input widget
+        lc_bulk_purchase$currentInputWidget = new BulkPurchaseInputWidget(
                 traderIndex,
                 tradeIndex,
                 (int) mouseX,
-                (int) mouseY
+                (int) mouseY,
+                () -> {
+                    // On close, remove the widget
+                    if (lc_bulk_purchase$currentInputWidget != null) {
+                        traderScreen.removeChild(lc_bulk_purchase$currentInputWidget);
+                        lc_bulk_purchase$currentInputWidget = null;
+                    }
+                }
         );
 
-        mc.setScreen(inputScreen);
+        traderScreen.addChild(lc_bulk_purchase$currentInputWidget);
+
+        // Set focus to the widget so it receives keyboard input
+        traderScreen.setFocused(lc_bulk_purchase$currentInputWidget);
+        lc_bulk_purchase$currentInputWidget.setFocused(true);
     }
 }
