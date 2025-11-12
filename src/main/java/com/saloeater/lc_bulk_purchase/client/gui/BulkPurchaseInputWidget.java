@@ -4,6 +4,7 @@ import com.saloeater.lc_bulk_purchase.client.BulkTradeExecutor;
 import io.github.lightman314.lightmanscurrency.api.misc.IEasyTickable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -27,6 +28,7 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
     private final Runnable onClose;
 
     private EditBox quantityInput;
+    private Button confirmButton;
     private boolean visible = true;
 
     public BulkPurchaseInputWidget(int traderIndex, int tradeIndex, int mouseX, int mouseY, Runnable onClose) {
@@ -39,11 +41,16 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
 
         // Input field dimensions
-        int inputWidth = 40; // Half the original width (was 80)
+        int inputWidth = 40;
         int inputHeight = 20;
+        int buttonSize = 20; // Square button
+        int spacing = 2; // Space between input and button
+
+        // Total width needed
+        int totalWidth = inputWidth + spacing + buttonSize;
 
         // Position below mouse cursor, with bounds checking
-        int inputX = Math.max(10, Math.min(mouseX, screenWidth - inputWidth - 10));
+        int inputX = Math.max(10, Math.min(mouseX, screenWidth - totalWidth - 10));
         int inputY = Math.max(10, Math.min(mouseY + 5, screenHeight - inputHeight - 10));
 
         // Create the input field
@@ -61,6 +68,12 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
         quantityInput.setMaxLength(9);
         quantityInput.setFilter(this::isValidInput);
         quantityInput.setBordered(true);
+
+        // Create confirm button (checkmark)
+        confirmButton = Button.builder(
+                Component.literal("✓"),
+                button -> confirmPurchase()
+        ).bounds(inputX + inputWidth + spacing, inputY, buttonSize, buttonSize).build();
     }
 
     private boolean isValidInput(String input) {
@@ -76,8 +89,10 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
     }
 
     public void tick() {
-        if (visible && quantityInput != null) {
-            quantityInput.tick();
+        if (visible) {
+            if (quantityInput != null) {
+                quantityInput.tick();
+            }
         }
     }
 
@@ -91,6 +106,9 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
 
         // Render the input field
         quantityInput.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        // Render the confirm button
+        confirmButton.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     @Override
@@ -117,10 +135,15 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!visible) return false;
 
+        // Check if click is on the confirm button
+        if (confirmButton.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+
         // Check if click is inside the input field
         boolean clickedInside = quantityInput.mouseClicked(mouseX, mouseY, button);
 
-        // If clicked outside the input field, close the widget
+        // If clicked outside both the input field and button, close the widget
         if (!clickedInside) {
             close();
             return true;
@@ -152,10 +175,6 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
     private void close() {
         visible = false;
         onClose.run();
-    }
-
-    public boolean isVisible() {
-        return visible;
     }
 
     @Override
