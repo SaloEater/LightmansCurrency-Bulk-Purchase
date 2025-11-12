@@ -1,5 +1,8 @@
 package com.saloeater.lc_bulk_purchase.client;
 
+import com.saloeater.lc_bulk_purchase.mixin.TraderScreenAccessor;
+import io.github.lightman314.lightmanscurrency.api.traders.menu.customer.ITraderScreen;
+import io.github.lightman314.lightmanscurrency.client.gui.screen.inventory.TraderScreen;
 import io.github.lightman314.lightmanscurrency.network.message.trader.CPacketExecuteTrade;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.event.TickEvent;
@@ -78,7 +81,7 @@ public class BulkTradeExecutor {
 
         // Check if we're still in the trader menu
         Minecraft mc = Minecraft.getInstance();
-        if (mc.screen == null) {
+        if (!(mc.screen instanceof TraderScreen traderScreen) || !(traderScreen instanceof TraderScreenAccessor accessor) || accessor.getCurrentTab() != accessor.getDefaultTab()) {
             // Menu was closed, stop execution
             stop();
             return;
