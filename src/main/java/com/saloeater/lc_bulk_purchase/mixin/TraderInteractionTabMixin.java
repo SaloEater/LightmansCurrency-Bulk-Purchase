@@ -104,9 +104,5 @@ public class TraderInteractionTabMixin {
         );
 
         traderScreen.addChild(lc_bulk_purchase$currentInputWidget);
-
-        // Set focus to the widget so it receives keyboard input
-        traderScreen.setFocused(lc_bulk_purchase$currentInputWidget);
-        lc_bulk_purchase$currentInputWidget.setFocused(true);
     }
 }

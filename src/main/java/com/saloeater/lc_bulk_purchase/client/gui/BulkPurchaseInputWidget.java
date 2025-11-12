@@ -1,6 +1,7 @@
 package com.saloeater.lc_bulk_purchase.client.gui;
 
 import com.saloeater.lc_bulk_purchase.client.BulkTradeExecutor;
+import io.github.lightman314.lightmanscurrency.api.misc.IEasyTickable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -16,15 +17,13 @@ import javax.annotation.Nonnull;
  * A popup widget overlay for entering bulk purchase quantity
  * This doesn't close the trader screen
  */
-public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, NarratableEntry {
+public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, NarratableEntry, IEasyTickable {
 
     private static String lastInputValue = "1";
 
     private final Minecraft minecraft;
     private final int traderIndex;
     private final int tradeIndex;
-    private final int mouseX;
-    private final int mouseY;
     private final Runnable onClose;
 
     private EditBox quantityInput;
@@ -34,15 +33,13 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
         this.minecraft = Minecraft.getInstance();
         this.traderIndex = traderIndex;
         this.tradeIndex = tradeIndex;
-        this.mouseX = mouseX;
-        this.mouseY = mouseY;
         this.onClose = onClose;
 
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
 
         // Input field dimensions
-        int inputWidth = 80;
+        int inputWidth = 40; // Half the original width (was 80)
         int inputHeight = 20;
 
         // Position below mouse cursor, with bounds checking
@@ -64,7 +61,6 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
         quantityInput.setMaxLength(9);
         quantityInput.setFilter(this::isValidInput);
         quantityInput.setBordered(true);
-        quantityInput.setFocused(true);
     }
 
     private boolean isValidInput(String input) {
@@ -76,6 +72,12 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
             return value > 0;
         } catch (NumberFormatException e) {
             return false;
+        }
+    }
+
+    public void tick() {
+        if (visible && quantityInput != null) {
+            quantityInput.tick();
         }
     }
 
@@ -101,12 +103,6 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
             return true;
         }
 
-        // Handle Escape key - close
-        if (keyCode == 256) { // Escape key
-            close();
-            return true;
-        }
-
         // Forward to input field
         return quantityInput.keyPressed(keyCode, scanCode, modifiers);
     }
@@ -120,7 +116,17 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!visible) return false;
-        return quantityInput.mouseClicked(mouseX, mouseY, button);
+
+        // Check if click is inside the input field
+        boolean clickedInside = quantityInput.mouseClicked(mouseX, mouseY, button);
+
+        // If clicked outside the input field, close the widget
+        if (!clickedInside) {
+            close();
+            return true;
+        }
+
+        return clickedInside;
     }
 
     private void confirmPurchase() {
@@ -135,7 +141,7 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
             int quantity = Integer.parseInt(input);
             if (quantity > 0) {
                 lastInputValue = input;
-                BulkTradeExecutor.execute(traderIndex, tradeIndex, quantity, mouseX, mouseY);
+                BulkTradeExecutor.execute(traderIndex, tradeIndex, quantity);
                 close();
             }
         } catch (NumberFormatException e) {

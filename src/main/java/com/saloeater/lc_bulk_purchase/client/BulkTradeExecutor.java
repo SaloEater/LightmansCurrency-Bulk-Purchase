@@ -1,6 +1,5 @@
 package com.saloeater.lc_bulk_purchase.client;
 
-import com.saloeater.lc_bulk_purchase.client.gui.FloatingTextOverlay;
 import io.github.lightman314.lightmanscurrency.network.message.trader.CPacketExecuteTrade;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.event.TickEvent;
@@ -11,18 +10,14 @@ public class BulkTradeExecutor {
     private static class ExecutionState {
         final int traderIndex;
         final int tradeIndex;
-        final int startMouseX;
-        final int startMouseY;
         int remaining;
         long lastExecutionTime;
 
-        ExecutionState(int traderIndex, int tradeIndex, int quantity, int mouseX, int mouseY) {
+        ExecutionState(int traderIndex, int tradeIndex, int quantity) {
             this.traderIndex = traderIndex;
             this.tradeIndex = tradeIndex;
             this.remaining = quantity;
             this.lastExecutionTime = System.currentTimeMillis();
-            this.startMouseX = mouseX;
-            this.startMouseY = mouseY;
         }
 
         boolean shouldExecute() {
@@ -32,9 +27,6 @@ public class BulkTradeExecutor {
         void executeOne() {
             // Send trade packet
             new CPacketExecuteTrade(traderIndex, tradeIndex).send();
-
-            // Show floating "+1" text at the starting mouse position
-            FloatingTextOverlay.INSTANCE.addFloatingText("+1", startMouseX, startMouseY, 0x00FF00);
 
             // Update state
             remaining--;
@@ -51,11 +43,11 @@ public class BulkTradeExecutor {
     /**
      * Start a bulk purchase execution
      */
-    public static void execute(int traderIndex, int tradeIndex, int quantity, int mouseX, int mouseY) {
+    public static void execute(int traderIndex, int tradeIndex, int quantity) {
         if (quantity <= 0) {
             return;
         }
-        currentExecution = new ExecutionState(traderIndex, tradeIndex, quantity, mouseX, mouseY);
+        currentExecution = new ExecutionState(traderIndex, tradeIndex, quantity);
     }
 
     /**
