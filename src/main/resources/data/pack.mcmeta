@@ -1,0 +1,9 @@
+{
+"id": "lc_bulk_purchase",
+    "pack": {
+        "description": {
+            "translate": "Flan fixes"
+        },
+        "pack_format": 81
+    }
+}

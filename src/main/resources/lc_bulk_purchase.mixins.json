@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.7",
+  "package": "com.saloeater.lc_bulk_purchase.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "TraderInteractionTabAccessor",
+    "TraderInteractionTabMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
