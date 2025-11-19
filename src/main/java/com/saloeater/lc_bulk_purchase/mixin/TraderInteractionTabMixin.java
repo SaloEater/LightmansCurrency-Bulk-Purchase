@@ -113,5 +113,8 @@ public class TraderInteractionTabMixin {
         );
 
         traderScreen.addChild(lc_bulk_purchase$currentInputWidget);
+
+        // CRITICAL: Set the widget as focused so it receives mouseDragged events
+        traderScreen.setFocused(lc_bulk_purchase$currentInputWidget);
     }
 }

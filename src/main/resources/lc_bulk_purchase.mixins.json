@@ -6,7 +6,9 @@
   "refmap": "lc_bulk_purchase.refmap.json",
   "client": [
     "TraderInteractionTabAccessor",
-    "TraderInteractionTabMixin"
+    "TraderInteractionTabMixin",
+    "TraderScreenAccessor",
+    "TraderScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

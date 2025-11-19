@@ -32,6 +32,7 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
     private final Runnable onClose;
 
     private EditBox quantityInput;
+    private QuantitySlider quantitySlider;
     private Button confirmButton;
     private boolean visible = true;
 
@@ -48,18 +49,31 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
 
-        // Input field dimensions
-        int inputWidth = 40;
+        // Widget dimensions
+        int inputWidth = 60;  // Increased from 40
         int inputHeight = 20;
-        int buttonSize = 20; // Square button
-        int spacing = 2; // Space between input and button
+        int buttonSize = 20;
+        int sliderWidth = 80;
+        int sliderHeight = 20;
+        int spacing = 2;
+        int verticalSpacing = 5;
 
-        // Total width needed
-        int totalWidth = inputWidth + spacing + buttonSize;
+        // Calculate total dimensions
+        int totalWidth = Math.max(inputWidth + spacing + buttonSize, sliderWidth);
+        int totalHeight = inputHeight + verticalSpacing + sliderHeight;
 
         // Position below mouse cursor, with bounds checking
         int inputX = Math.max(10, Math.min(mouseX, screenWidth - totalWidth - 10));
-        int inputY = Math.max(10, Math.min(mouseY + 5, screenHeight - inputHeight - 10));
+        int inputY = Math.max(10, Math.min(mouseY + 5, screenHeight - totalHeight - 10));
+
+        // Set initial value to last value, but cap it to max stock
+        int lastValue = 1;
+        try {
+            lastValue = Integer.parseInt(lastInputValue);
+        } catch (NumberFormatException e) {
+            // Use default value of 1
+        }
+        int initialValue = Math.min(lastValue, maxStock);
 
         // Create the input field
         quantityInput = new EditBox(
@@ -72,18 +86,35 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
         );
 
         // Configure the input field
-        // Set initial value to last value, but cap it to max stock
-        int lastValue = 1;
-        try {
-            lastValue = Integer.parseInt(lastInputValue);
-        } catch (NumberFormatException e) {
-            // Use default value of 1
-        }
-        int initialValue = Math.min(lastValue, maxStock);
         quantityInput.setValue(String.valueOf(initialValue));
         quantityInput.setMaxLength(9);
         quantityInput.setFilter(this::isValidInput);
         quantityInput.setBordered(true);
+
+        // Create the slider
+        quantitySlider = new QuantitySlider(
+                inputX,
+                inputY + inputHeight + verticalSpacing,
+                sliderWidth,
+                sliderHeight,
+                1,              // minValue
+                maxStock,       // maxValue
+                initialValue,
+                quantityInput
+        );
+
+        // Add responder to input field for input→slider sync
+        quantityInput.setResponder(text -> {
+            if (!text.isEmpty()) {
+                try {
+                    int value = Integer.parseInt(text);
+                    value = Math.max(1, Math.min(value, maxStock));
+                    quantitySlider.setValue(value); // ForgeSlider uses setValue(double)
+                } catch (NumberFormatException e) {
+                    // Ignore invalid input
+                }
+            }
+        });
 
         // Create confirm button (checkmark)
         confirmButton = Button.builder(
@@ -116,6 +147,7 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
                         int value = Integer.parseInt(currentValue);
                         if (value > maxStock) {
                             quantityInput.setValue(String.valueOf(maxStock));
+                            quantitySlider.setValue(maxStock); // ForgeSlider uses setValue(double)
                         }
                     } catch (NumberFormatException e) {
                         // Ignore invalid input
@@ -135,6 +167,9 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
 
         // Render the input field
         quantityInput.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        // Render the slider
+        quantitySlider.render(guiGraphics, mouseX, mouseY, partialTick);
 
         // Render the confirm button
         confirmButton.render(guiGraphics, mouseX, mouseY, partialTick);
@@ -169,16 +204,44 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
             return true;
         }
 
-        // Check if click is inside the input field
-        boolean clickedInside = quantityInput.mouseClicked(mouseX, mouseY, button);
+        // Check if click is on the slider
+        boolean clickedSlider = quantitySlider.mouseClicked(mouseX, mouseY, button);
+        if (clickedSlider) {
+            return true;
+        }
 
-        // If clicked outside both the input field and button, close the widget
-        if (!clickedInside) {
+        // Check if click is inside the input field
+        boolean clickedInput = quantityInput.mouseClicked(mouseX, mouseY, button);
+
+        // If clicked outside all widgets, close the widget
+        if (!clickedInput && !clickedSlider) {
             close();
             return true;
         }
 
-        return clickedInside;
+        return clickedInput;
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (!visible) return false;
+        // Forward drag events to slider for smooth dragging
+        if (quantitySlider.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+            return true;
+        }
+        // Also forward to input field in case it's being used for text selection
+        return quantityInput.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (!visible) return false;
+        // Forward release events to slider
+        if (quantitySlider.mouseReleased(mouseX, mouseY, button)) {
+            return true;
+        }
+        // Also forward to input field
+        return quantityInput.mouseReleased(mouseX, mouseY, button);
     }
 
     private void confirmPurchase() {
