@@ -146,8 +146,8 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
                     try {
                         int value = Integer.parseInt(currentValue);
                         if (value > maxStock) {
-                            quantityInput.setValue(String.valueOf(maxStock));
-                            quantitySlider.setValue(maxStock); // ForgeSlider uses setValue(double)
+//                            quantityInput.setValue(String.valueOf(maxStock));
+//                            quantitySlider.setValue(maxStock); // ForgeSlider uses setValue(double)
                         }
                     } catch (NumberFormatException e) {
                         // Ignore invalid input
