@@ -99,6 +99,8 @@ public class TraderInteractionTabMixin {
         lc_bulk_purchase$currentInputWidget = new BulkPurchaseInputWidget(
                 traderIndex,
                 tradeIndex,
+                trader,
+                trade,
                 (int) mouseX,
                 (int) mouseY,
                 () -> {

@@ -2,6 +2,9 @@ package com.saloeater.lc_bulk_purchase.client.gui;
 
 import com.saloeater.lc_bulk_purchase.client.BulkTradeExecutor;
 import io.github.lightman314.lightmanscurrency.api.misc.IEasyTickable;
+import io.github.lightman314.lightmanscurrency.api.traders.TradeContext;
+import io.github.lightman314.lightmanscurrency.api.traders.TraderData;
+import io.github.lightman314.lightmanscurrency.api.traders.trade.TradeData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -25,17 +28,22 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
     private final Minecraft minecraft;
     private final int traderIndex;
     private final int tradeIndex;
+    private final int maxStock;
     private final Runnable onClose;
 
     private EditBox quantityInput;
     private Button confirmButton;
     private boolean visible = true;
 
-    public BulkPurchaseInputWidget(int traderIndex, int tradeIndex, int mouseX, int mouseY, Runnable onClose) {
+    public BulkPurchaseInputWidget(int traderIndex, int tradeIndex, TraderData trader, TradeData trade, int mouseX, int mouseY, Runnable onClose) {
         this.minecraft = Minecraft.getInstance();
         this.traderIndex = traderIndex;
         this.tradeIndex = tradeIndex;
         this.onClose = onClose;
+
+        // Get available stock from the trade
+        TradeContext context = TradeContext.createStorageMode(trader);
+        this.maxStock = trade.getStock(context);
 
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
@@ -60,11 +68,19 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
                 inputY,
                 inputWidth,
                 inputHeight,
-                Component.literal("Quantity")
+                Component.literal("Quantity (Max: " + maxStock + ")")
         );
 
         // Configure the input field
-        quantityInput.setValue(lastInputValue);
+        // Set initial value to last value, but cap it to max stock
+        int lastValue = 1;
+        try {
+            lastValue = Integer.parseInt(lastInputValue);
+        } catch (NumberFormatException e) {
+            // Use default value of 1
+        }
+        int initialValue = Math.min(lastValue, maxStock);
+        quantityInput.setValue(String.valueOf(initialValue));
         quantityInput.setMaxLength(9);
         quantityInput.setFilter(this::isValidInput);
         quantityInput.setBordered(true);
@@ -82,7 +98,7 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
         }
         try {
             int value = Integer.parseInt(input);
-            return value > 0;
+            return value > 0; // Allow any positive number
         } catch (NumberFormatException e) {
             return false;
         }
@@ -92,6 +108,19 @@ public class BulkPurchaseInputWidget implements Renderable, GuiEventListener, Na
         if (visible) {
             if (quantityInput != null) {
                 quantityInput.tick();
+
+                // Automatically clamp input value to max stock
+                String currentValue = quantityInput.getValue();
+                if (!currentValue.isEmpty()) {
+                    try {
+                        int value = Integer.parseInt(currentValue);
+                        if (value > maxStock) {
+                            quantityInput.setValue(String.valueOf(maxStock));
+                        }
+                    } catch (NumberFormatException e) {
+                        // Ignore invalid input
+                    }
+                }
             }
         }
     }
